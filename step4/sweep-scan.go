@@ -9,18 +9,18 @@ import (
 	"time"
 )
 
-func portScanner(host string, port, timeout int, wg *sync.WaitGroup) {
+func scanPort(host string, port, timeout int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	address := fmt.Sprintf("%s:%d", host, port)
 	conn, err := net.DialTimeout("tcp", address, time.Duration(timeout)*time.Millisecond)
 	if err == nil {
-		fmt.Printf("Port: %d is open\n", port)
+		fmt.Printf("Host: %s Port: %d is open\n", host, port)
 		conn.Close()
 	}
 }
 
 func main() {
-	hosts := flag.String("host", "localhost", "Comma-separated list of hosts")
+	hosts := flag.String("host", "localhost", "Comma-separated list of hosts or CIDR notation")
 	port := flag.Int("port", 80, "Port to scan")
 	timeout := flag.Int("timeout", 500, "Connection timeout in milliseconds")
 	concurrent := flag.Int("concurrent", 100, "Number of concurrent scans")
@@ -36,7 +36,9 @@ func main() {
 		semaphore <- struct{}{}
 		go func(h string) {
 			defer func() { <-semaphore }()
-			portScanner(h, *port, *timeout, &wg)
+			scanPort(h, *port, *timeout, &wg)
 		}(host)
 	}
+
+	wg.Wait()
 }
